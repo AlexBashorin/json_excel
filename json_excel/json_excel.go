@@ -92,8 +92,8 @@ func WriteExcel(rw http.ResponseWriter, req *http.Request) {
 
 	defer a.Close()
 
-	// errF := os.Remove(nameFile)
-	// if errF != nil {
-	// 	fmt.Println(errF)
-	// }
+	errF := os.Remove(nameFile)
+	if errF != nil {
+		fmt.Println(errF)
+	}
 }
