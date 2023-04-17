@@ -1,4 +1,6 @@
-FROM golang:1.12.0-alpine3.9
+FROM golang:alpine
+RUN GOOS=linux CGO_ENABLED=0
+RUN apk add git
 RUN mkdir /app
 ADD . /app
 WORKDIR /app
