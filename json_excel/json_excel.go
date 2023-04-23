@@ -54,18 +54,18 @@ func WriteExcel(rw http.ResponseWriter, req *http.Request) {
 		fmt.Println(err)
 	}
 
-	// set names of excel's columns
-	aplphabet := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"}
-	var colNames []string
-	colNames = make([]string, len(keys), len(keys))
+	aplphabet := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"}
+	colNames := make([]string, len(keys))
+
 	for p := 0; p < len(keys); p++ {
-		if p > 26 {
+		if p < 26 {
+			colNames[p] = aplphabet[p]
+		} else {
 			var count float64 = float64(p / 26)
 			first := math.Floor(count) - 1
-			var last int = p - (26 * int(first))
-			colNames[p] = aplphabet[int(first)] + aplphabet[last]
-		} else {
-			colNames[p] = aplphabet[p]
+			qua := 26 * count
+			pp := p - int(qua)
+			colNames[p] = aplphabet[int(first)] + aplphabet[pp]
 		}
 	}
 
