@@ -1,7 +1,9 @@
 package json_excel
 
 import (
+	"archive/zip"
 	"bufio"
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -54,6 +56,7 @@ func WriteExcel(rw http.ResponseWriter, req *http.Request) {
 		fmt.Println(err)
 	}
 
+	// if columns > 26 (eng alphabet)
 	aplphabet := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"}
 	colNames := make([]string, len(keys))
 
@@ -69,10 +72,11 @@ func WriteExcel(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	// write rows
 	for i := 0; i < len(objmap); i++ {
-		for inde, v := range keys {
-			column := colNames[inde] + strconv.Itoa(i+1)
-			f.SetCellValue(wholeData.NameSheet, column, objmap[i][v])
+		for k := 0; k < len(keys); k++ {
+			column := colNames[k] + strconv.Itoa(i+1)
+			f.SetCellValue(wholeData.NameSheet, column, objmap[i][keys[k]])
 		}
 	}
 	f.SetActiveSheet(index)
@@ -85,7 +89,29 @@ func WriteExcel(rw http.ResponseWriter, req *http.Request) {
 	a, _ := os.Open(nameFile)
 	reader := bufio.NewReader(a)
 	content, _ := ioutil.ReadAll(reader)
-	encoded := base64.StdEncoding.EncodeToString(content)
+
+	// Compress file
+	buf := new(bytes.Buffer)
+	w := zip.NewWriter(buf)
+	fArch, err := w.Create("archive.zip")
+	if err != nil {
+		log.Fatal(err)
+	}
+	_, err = fArch.Write(content)
+	if err != nil {
+		log.Fatal(err)
+	}
+	errW := w.Close()
+	if errW != nil {
+		log.Fatal(errW)
+	}
+
+	archive, _ := os.Open("archive.zip")
+	readerArchive := bufio.NewReader(archive)
+	contentArchive, _ := ioutil.ReadAll(readerArchive)
+
+	encoded := base64.StdEncoding.EncodeToString(contentArchive)
+	fmt.Println(contentArchive)
 
 	rw.Header().Set("Content-Type", "text/json")
 	rw.Write([]byte(encoded))
