@@ -3,7 +3,7 @@ Microservice accepting JSON as input and returning a file in xlsx format.
 And generate json from submitted.
 
 For install json to excel:  
-`docker pull albaxeshtest1/json_xlsx:jexcel`
+`docker pull albaxeshtest1/json_xlsx:jexcel`  
 `docker build -t -d -p 3030:8082 albaxeshtest1/json_xlsx:jexcel`
 
 For install excel to json:  
