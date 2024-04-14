@@ -2,7 +2,11 @@ module example.com/m
 
 go 1.19
 
-require github.com/xuri/excelize/v2 v2.7.0
+require (
+	github.com/gorilla/mux v1.8.1
+	github.com/tealeg/xlsx v1.0.5
+	github.com/xuri/excelize/v2 v2.7.0
+)
 
 require (
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect

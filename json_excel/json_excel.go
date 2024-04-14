@@ -1,38 +1,32 @@
 package json_excel
 
 import (
-	"archive/zip"
 	"bufio"
-	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"log"
+	"io"
 	"math"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 
-	excelize "github.com/xuri/excelize/v2"
+	"github.com/xuri/excelize/v2"
 )
 
-type JD struct {
-	jsdata []map[string]interface{} `json:"data"`
-}
-
 type Data struct {
-	NameSheet string                   `json:"nameSheet"`
-	NameFile  string                   `json:"nameFile"`
-	JsonData  []map[string]interface{} `json:"data"`
+	NameSheet string `json:"nameSheet"`
+	NameFile  string `json:"nameFile"`
+	// JsonData  []map[string]interface{} `json:"data"`
+	JsonData []map[string]*json.RawMessage `json:"data"`
 }
 
 func WriteExcel(rw http.ResponseWriter, req *http.Request) {
-	body, err := ioutil.ReadAll(req.Body)
+	body, err := io.ReadAll(req.Body)
 	if err != nil {
 		panic(err)
 	}
-	log.Println(string(body))
 
 	var wholeData Data
 	err = json.Unmarshal(body, &wholeData)
@@ -42,11 +36,22 @@ func WriteExcel(rw http.ResponseWriter, req *http.Request) {
 
 	var objmap = wholeData.JsonData
 
-	// get keys of structure
+	// get keys
+	// var keys []string
+	// for i, _ := range objmap[0] {
+	// 	keys = append(keys, i)
+	// }
+	// uniqueKeys := make(map[string]struct{})
 	var keys []string
-	for k := range objmap[0] {
+	// keys := make([]string, 0, len(objmap[0]))
+
+	for k, _ := range objmap[0] {
 		keys = append(keys, k)
 	}
+
+	sort.Slice(keys, func(i, j int) bool {
+		return keys[i] < keys[j]
+	})
 	fmt.Println(keys)
 
 	// WRITE
@@ -59,7 +64,6 @@ func WriteExcel(rw http.ResponseWriter, req *http.Request) {
 	// if columns > 26 (eng alphabet)
 	aplphabet := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"}
 	colNames := make([]string, len(keys))
-
 	for p := 0; p < len(keys); p++ {
 		if p < 26 {
 			colNames[p] = aplphabet[p]
@@ -72,7 +76,7 @@ func WriteExcel(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	// write rows
+	// Write rows
 	for i := 0; i < len(objmap); i++ {
 		for k := 0; k < len(keys); k++ {
 			column := colNames[k] + strconv.Itoa(i+1)
@@ -80,6 +84,7 @@ func WriteExcel(rw http.ResponseWriter, req *http.Request) {
 		}
 	}
 	f.SetActiveSheet(index)
+
 	// Save spreadsheet by the given path.
 	nameFile := wholeData.NameFile + ".xlsx"
 	if err := f.SaveAs(nameFile); err != nil {
@@ -88,38 +93,13 @@ func WriteExcel(rw http.ResponseWriter, req *http.Request) {
 
 	a, _ := os.Open(nameFile)
 	reader := bufio.NewReader(a)
-	content, _ := ioutil.ReadAll(reader)
-
-	// Compress file
-	buf := new(bytes.Buffer)
-	w := zip.NewWriter(buf)
-	fArch, err := w.Create("archive.zip")
-	if err != nil {
-		log.Fatal(err)
-	}
-	_, err = fArch.Write(content)
-	if err != nil {
-		log.Fatal(err)
-	}
-	errW := w.Close()
-	if errW != nil {
-		log.Fatal(errW)
-	}
-
-	archive, _ := os.Open("archive.zip")
-	readerArchive := bufio.NewReader(archive)
-	contentArchive, _ := ioutil.ReadAll(readerArchive)
-
-	encoded := base64.StdEncoding.EncodeToString(contentArchive)
-	fmt.Println(contentArchive)
+	content, _ := io.ReadAll(reader)
+	encoded := base64.StdEncoding.EncodeToString(content)
+	defer a.Close()
 
 	rw.Header().Set("Content-Type", "text/json")
 	rw.Write([]byte(encoded))
 
-	defer a.Close()
-
-	errF := os.Remove(nameFile)
-	if errF != nil {
-		fmt.Println(errF)
-	}
+	// Delete created file
+	// os.Remove(nameFile)
 }

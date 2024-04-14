@@ -1,9 +1,12 @@
 package excel_json
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 
 	excelize "github.com/xuri/excelize/v2"
 )
@@ -12,15 +15,45 @@ func WriteJson(rw http.ResponseWriter, req *http.Request) {
 	//========== READ ==========//
 	err := req.ParseMultipartForm(32 << 20)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Parse", err)
 	}
 
 	fhs := req.MultipartForm.File["file"]
-	file_name := fhs[0].Filename
+	// file_name := fhs[0].Filename
 
-	f, err := excelize.OpenFile(file_name)
+	nf, err := os.Create("ex.xlsx")
+	if err != nil {
+		fmt.Println("nf:", err)
+	}
+	defer nf.Close()
+
+	opened, err := fhs[0].Open()
 	if err != nil {
 		fmt.Println(err)
+	}
+
+	buf := bytes.NewBuffer(nil)
+	if _, err := io.Copy(buf, opened); err != nil {
+		fmt.Println(err)
+	}
+
+	newFile, err := nf.Write(buf.Bytes())
+	if err != nil {
+		fmt.Println(err)
+	}
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println("writed: ", newFile)
+
+	// gg, err = fhs[0].Open()
+	// if err != nil {
+	// 	fmt.Println(err)
+	// }
+
+	f, err := excelize.OpenFile("ex.xlsx")
+	if err != nil {
+		fmt.Println("cannot excelize.OpenFile: ", err)
 		return
 	}
 
@@ -54,10 +87,12 @@ func WriteJson(rw http.ResponseWriter, req *http.Request) {
 	defer func() {
 		// Close the spreadsheet.
 		if err := f.Close(); err != nil {
-			fmt.Println(err)
+			fmt.Println("Close", err)
 		}
 	}()
 
-	rw.Header().Set("Content-Type", "text/json")
+	// rw.Header().Set("Content-Type", "text/json")
 	rw.Write([]byte(jsonBytes))
+
+	os.Remove(nf.Name())
 }
